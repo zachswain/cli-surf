@@ -28,7 +28,7 @@ class ServerSettings(CommonSettings):
     IP_ADDRESS: Union[IPvAnyAddress | Literal["localhost"]] = Field(
         default="localhost"
     )
-    DEBUG: bool = Field(default=True)
+    DEBUG: bool = Field(default=False)
 
 
 class EmailSettings(ServerSettings):
@@ -69,4 +69,4 @@ class DatabaseSettings(CommonSettings):
     Class for defining database env settings
     """
 
-    DB_URI: str
+    DB_URI: str = Field(default="")

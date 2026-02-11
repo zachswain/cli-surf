@@ -102,4 +102,4 @@ def create_app(env):
 if __name__ == "__main__":
     env = ServerSettings()
     app = create_app(env)
-    app.run(host="0.0.0.0", port=env.PORT, debug=env.DEBUG)
+    app.run(host=str(env.IP_ADDRESS), port=env.PORT, debug=env.DEBUG)
