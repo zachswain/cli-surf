@@ -4,41 +4,69 @@ Make sure pytest is installed: pip install pytest
 Run pytest: pytest
 """
 
+from unittest.mock import Mock, patch
 
-# // TODO: mock this api call, bad practice to actually make a call
-# commenting out because this is breaking the ci/cd pipeline
+from src.gpt import openai_gpt, simple_gpt
 
-# def test_simple_gpt():
-#     """
-#     Testing the simple_gpt function
-#     Calls the simple gpt and asks it to output
-#     the days of the week. If the output does not contain
-#     any day of the week, we assume the gpt is non-fucntional
-#     """
 
-#     surf_summary = ""
-#     gpt_prompt = """Please output the days of the week in English. What day
-#         is your favorite?"""
+def test_simple_gpt():
+    """Mock g4f Client and verify response returned."""
+    mock_message = Mock()
+    mock_message.content = "Looks like great surf today!"
+    mock_choice = Mock()
+    mock_choice.message = mock_message
+    mock_response = Mock()
+    mock_response.choices = [mock_choice]
 
-#     gpt_response = gpt.simple_gpt(surf_summary, gpt_prompt).lower()
-#     expected_response = set([
-#         "monday",
-#         "tuesday",
-#         "wednesday",
-#         "thursday",
-#         "friday" "saturday",
-#         "sunday",
-#         "一",
-#         "二",
-#         "三",
-#         "四",
-#         "五",
-#     ])
+    mock_client = Mock()
+    mock_client.chat.completions.create.return_value = mock_response
 
-#     # Can case the "gpt_response" string into a list, and
-#     # check for set intersection with the expected response set
-#     gpt_response_set = set(gpt_response.split())
+    with patch("src.gpt.Client", return_value=mock_client):
+        result = simple_gpt("surf is 4ft", "give me a report")
 
-#     assert gpt_response_set.intersection(
-#         expected_response
-#     ), f"Expected '{expected_response}', but got: {gpt_response}"
+    assert result == "Looks like great surf today!"
+    mock_client.chat.completions.create.assert_called_once()
+
+
+def test_openai_gpt():
+    """Mock OpenAI client and verify api_key and model passed."""
+    mock_message = Mock()
+    mock_message.content = "OpenAI surf report"
+    mock_choice = Mock()
+    mock_choice.message = mock_message
+    mock_response = Mock()
+    mock_response.choices = [mock_choice]
+
+    mock_client = Mock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("src.gpt.OpenAI", return_value=mock_client) as mock_cls:
+        result = openai_gpt(
+            "surf is 4ft", "give me a report", "sk-test-key", "gpt-4"
+        )
+
+    assert result == "OpenAI surf report"
+    mock_cls.assert_called_once_with(api_key="sk-test-key")
+    mock_client.chat.completions.create.assert_called_once()
+    call_kwargs = mock_client.chat.completions.create.call_args
+    assert call_kwargs.kwargs["model"] == "gpt-4"
+
+
+def test_simple_gpt_message_content():
+    """Verify the prompt concatenation passed to the model."""
+    mock_message = Mock()
+    mock_message.content = "ok"
+    mock_choice = Mock()
+    mock_choice.message = mock_message
+    mock_response = Mock()
+    mock_response.choices = [mock_choice]
+
+    mock_client = Mock()
+    mock_client.chat.completions.create.return_value = mock_response
+
+    with patch("src.gpt.Client", return_value=mock_client):
+        simple_gpt("SUMMARY", "PROMPT")
+
+    call_kwargs = mock_client.chat.completions.create.call_args
+    messages = call_kwargs.kwargs["messages"]
+    assert messages[0]["content"] == "SUMMARYPROMPT"
